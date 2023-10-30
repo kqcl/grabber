@@ -56,7 +56,7 @@ todo = {
 
 **THIS SCRIPT was made for Educational purposes only**
 
-This project was initially created for personal use but has now been relased as a proof of concept, not for the use as actual malware.
+This project was initially created for personal use but has now been released as a proof of concept, not for the use as actual malware.
 
 By using this, you agree that you hold responsibility and accountability of any consequences caused by your actions.
 
