@@ -1,0 +1,5 @@
+PyAutoGUI==0.9.54
+pycryptodome==3.19.0
+pywin32==306
+Requests==2.31.0
+Pyinstaller
