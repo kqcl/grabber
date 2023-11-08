@@ -5,7 +5,7 @@ python --version > nul 2>&1
 if %errorlevel% neq 0 (
     echo Python is not installed! (Go to https://www.python.org/downloads and install the latest version.^)
     echo Make sure it is added to PATH.
-    pause > nul
+    pause
 )
 
 title Installing Requirements
@@ -17,3 +17,6 @@ title Executing Builder
 echo Executing the Grabbers Builder...
 cd src
 python -m builder.py
+echo Build finished
+
+pause
