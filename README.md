@@ -29,7 +29,8 @@ features = {
         "downloads"
         ]
     },
-    "os-support": "windows"
+    "os-support": "windows",
+    "add-to-startup": True
 }
 ```
 
