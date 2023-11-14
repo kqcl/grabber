@@ -65,7 +65,7 @@ By using this, you agree that you hold responsibility and accountability of any 
 
 [henry-richard7](https://github.com/henry-richard7) - utilized parts of his work for the browser password grabber
 
-[AstraaDev](https://github.com/AstraaDev) - had a half-working implementation of a discord-token grabber that I used parts of
+[AstraaDev](https://github.com/AstraaDev) - had a half-working implementation of a discord-token grabber that took some inspiration on
 
 ## License
 
